@@ -1,4 +1,7 @@
 import numpy as np
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPRegressor  # 多层线性回归
 
 
 class BpNet(object):
@@ -20,9 +23,10 @@ class BpNet(object):
         self.E_H.append(np.mat(w_temp2))
         for i in range(1, self.layer_num):
             # w_temp0 = np.ones((net_nodes[i], net_nodes[i - 1]))
-            w_temp0 = np.random.rand(net_nodes[i], net_nodes[i - 1])
             # w_temp1 = np.ones((net_nodes[i], 1))
-            w_temp1 = np.random.rand(net_nodes[i], 1)
+            prng = np.random.RandomState(14)  # 定义局部种子
+            w_temp0 = prng.rand(net_nodes[i], net_nodes[i - 1])
+            w_temp1 = prng.rand(net_nodes[i], 1)
             w_temp2 = np.zeros((net_nodes[i], 1))
             self.weight.append(np.mat(w_temp0))
             # self.delta_weight.append(np.mat(w_temp0))
@@ -59,16 +63,100 @@ class BpNet(object):
 
 
 if __name__ == '__main__':
-    net_nodes = [2, 4, 5, 4]  # 网络结构:输入 隐藏1 隐藏2 输出
-    bp = BpNet(net_nodes, 0.3)
+    # net_nodes = [2, 4, 5, 4]  # 网络结构:输入 隐藏1 隐藏2 输出
+    # bp = BpNet(net_nodes, 0.3)
+    # bp.init_net()
+    # for j in range(0, 1000):
+    #     h0 = [2, 2]
+    #     bp.net_forward(h0)
+    #     h3 = [0.8, 0.6, 0.4, 0.2]
+    #     bp.net_backward(h3)
+    #     print(np.max(bp.E_H[-1]))
+    # pass
+    # h0 = [2, 5]
+    # bp.net_forward(h0)
+    # print(bp.h[-1])
+    iris = datasets.load_iris()  # 导入数据集
+    X = iris.data  # 获得其特征向量
+    y = iris.target  # 获得样本label
+    y = y
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=12)
+
+    net_nodes = [4, 15, 3]  # 网络结构:输入 隐藏1 隐藏2 输出
+    bp = BpNet(net_nodes, 0.5)
     bp.init_net()
-    for j in range(0, 1000):
-        h0 = [2, 2]
-        bp.net_forward(h0)
-        h3 = [0.8, 0.6, 0.4, 0.2]
-        bp.net_backward(h3)
-        print(np.max(bp.E_H[-1]))
+
+    # for n in range(4):
+    #     for i in range(len(y_train)):
+    #         bp.net_forward(X_train[i])
+    #         bp.net_backward(y_train[i])
+    #         print(np.max(bp.E_H[-1]))
+    #
+    # T = 0
+    # L = []
+    # for j in range(len(y_test)):
+    #     bp.net_forward(X_test[j])
+    #     e = abs(bp.h[-1][0, 0] - y_test[j])
+    #     L.append(e)
+    #     if e < 0.25:
+    #         T += 1
+    #         print("T "+str(e))
+    #     else:
+    #         print("F "+str(e))
+    # print(T/len(y_test))
+    # print(sum(L)/len(L))
+
+    for c in range(1, 100):
+        for i in range(len(y_train)):
+            bp.net_forward(X_train[i])
+            y_tr = np.mat(np.zeros((1, 3)))
+            y_tr[0, y_train[i]] = 1
+            bp.net_backward(y_tr)
+            # print(bp.h[-1])
+
+        T = 0
+        L = []
+        E = []
+        E1 = []
+        I = []
+        for j in range(len(y_test)):
+            bp.net_forward(X_test[j])
+            # print(bp.h[-1])
+            p = np.argmax(bp.h[-1])  # get the index of max in the a
+            if y_test[j] == p:
+                T += 1
+                L.append(bp.h[-1][p, 0]/sum(bp.h[-1]))
+            else:
+                E.append(y_test[j])
+                E1.append(p)
+                I.append(j)
+        print(str(c)+" "+str(100*T/len(y_test))+" "+str(sum(L)/len(L)))
+        print(str(E))
+        print(str(E1))
+        print(str(I))
+
+    clf = MLPRegressor(solver='lbfgs',activation= 'logistic', hidden_layer_sizes=(15,), random_state=1)
+    clf.fit(X_train, y_train)
+    y_p = clf.predict(X_test)
+
+    T = 0
+    L = []
+    E = []
+    E1 = []
+    I = []
+    for j in range(len(y_test)):
+        e = abs(y_test[j]-y_p[j])
+        if e < 0.5:
+            T += 1
+            L.append(e)
+        else:
+            E.append(y_test[j])
+            E1.append(p)
+            I.append(j)
+    print("sk-learn")
+    print(str(100 * T / len(y_test)) + " " + str(sum(L) / len(L)))
+    print(str(E))
+    print(str(E1))
+    print(str(I))
+
     pass
-    h0 = [2, 5]
-    bp.net_forward(h0)
-    print(bp.h[-1])
